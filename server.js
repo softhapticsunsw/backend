@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://dbUser:dbPass@cluster0.bt3feo0.mongodb.net/';
+const mongoUri = process.env.MONGODB_URI;
 const dbName = 'cloudrecordings';
 const collectionName = 'recordings';
 
