@@ -72,6 +72,17 @@ app.get('/api/recordings', async (req, res) => {
   }
 });
 
+// Just to activate the instance for Render
+app.get('/ping', async (req, res) => {
+  try {
+    // Simple dummy query to check if the MongoDB connection is active
+    await db.command({ ping: 1 });
+    res.json({ message: 'Pong! MongoDB connection is active' });
+  } catch (err) {
+    res.status(500).json({ error: 'MongoDB connection error' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
