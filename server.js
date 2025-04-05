@@ -1,36 +1,77 @@
-// server.js
-require('dotenv').config(); // Add this line at the top
 const express = require('express');
 const { MongoClient } = require('mongodb');
+const cors = require('cors');
+require('dotenv').config();
+
 const app = express();
+const port = process.env.PORT || 3000;
+const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://dbUser:dbPass@cluster0.bt3feo0.mongodb.net/';
+const dbName = 'cloudrecordings';
+const collectionName = 'recordings';
+
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-const MONGO_URI = process.env.MONGODB_URI; // From environment variables
-const client = new MongoClient(MONGO_URI);
+let db;
 
-app.post('/recordings', async (req, res) => {
+// Connect to MongoDB
+MongoClient.connect(mongoUri, { useUnifiedTopology: true })
+  .then(client => {
+    db = client.db(dbName);
+    console.log('Connected to MongoDB');
+  })
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// API Endpoints
+app.post('/api/recordings', async (req, res) => {
   try {
-    const db = client.db('cloudrecordings');
-    await db.collection('recordings').insertOne(req.body);
-    res.status(201).send();
+    const { fileName, content, userEmail } = req.body;
+
+    const result = await db.collection(collectionName).insertOne({
+      fileName,
+      content,
+      userEmail,
+      createdAt: new Date()
+    });
+
+    res.status(201).json({
+      message: 'Recording saved successfully',
+      id: result.insertedId
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to save recording' });
   }
 });
 
-app.get('/recordings/:userId', async (req, res) => {
+app.delete('/api/recordings/:fileName', async (req, res) => {
   try {
-    const db = client.db('cloudrecordings');
-    const recordings = await db.collection('recordings')
-      .find({ userId: req.params.userId })
+    const { fileName } = req.params;
+    const result = await db.collection(collectionName).deleteOne({ fileName });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Recording not found' });
+    }
+
+    res.json({ message: 'Recording deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete recording' });
+  }
+});
+
+app.get('/api/recordings', async (req, res) => {
+  try {
+    const recordings = await db.collection(collectionName)
+      .find()
+      .sort({ createdAt: -1 })
       .toArray();
+
     res.json(recordings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to fetch recordings' });
   }
 });
 
-// Initialize connection and start server
-client.connect().then(() => {
-  app.listen(3000, () => console.log('API running on port 3000'));
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
