@@ -50,7 +50,7 @@ app.post('/api/send-report', async (req, res) => {
       subject: `Data Report - ${fileName}`,
       text: 'Attached is your CSV data report',
       attachments: [{
-        filename: `${fileName}.csv`,
+        filename: fileName.endsWith('.csv') ? fileName : `${fileName}.csv`,
         content: csvData
       }]
     };
