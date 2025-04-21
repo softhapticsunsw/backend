@@ -1,6 +1,7 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -27,6 +28,40 @@ MongoClient.connect(mongoUri, { useUnifiedTopology: true })
   });
 
 // API Endpoints
+// Configure email transporter (use your email service config)
+const transporter = nodemailer.createTransport({
+  service: 'Gmail',
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+app.post('/api/send-report', async (req, res) => {
+  try {
+    const { email, csvData, fileName } = req.body;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `Data Report - ${fileName}`,
+      text: 'Attached is your CSV data report',
+      attachments: [{
+        filename: `${fileName}.csv`,
+        content: csvData
+      }]
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Email send error:', err);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
+});
 
 // Save a recording
 app.post('/api/recordings', async (req, res) => {
@@ -108,6 +143,12 @@ app.get('/ping', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+/*
+-----------------------------------------
+    Mood Chart API Endpoint Functions
+-----------------------------------------
+*/
 
 /*
 -----------------------------------------
